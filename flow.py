@@ -36,7 +36,7 @@ Q = FunctionSpace(mesh, 'P', 1)
 inflow   = 'near(x[0], 0)'
 outflow  = f'near(x[0], {Lx})'
 walls    = f'near(x[1], 0) || near(x[1], {Ly})'
-obstacle = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
+obstacle_boundary = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
 
 # Define inflow profile
 inflow_profile = (f'1.0', '0')
@@ -44,7 +44,7 @@ inflow_profile = (f'1.0', '0')
 # Define boundary conditions
 bcu_inflow = DirichletBC(V, Expression(inflow_profile, degree=2), inflow)
 bcu_walls = DirichletBC(V, Constant((0, 0)), walls)
-bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle)
+bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle_boundary)
 bcp_outflow = DirichletBC(Q, Constant(0), outflow)
 bcu = [bcu_inflow, bcu_walls, bcu_obstacle]
 bcp = [bcp_outflow]
