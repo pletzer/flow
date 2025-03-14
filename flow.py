@@ -107,12 +107,12 @@ A3 = assemble(a3)
 xdmffile_u = XDMFFile('flow_results/velocity.xdmf')
 xdmffile_p = XDMFFile('flow_results/pressure.xdmf')
 
-# Create time series (for use in reaction_system.py)
-timeseries_u = TimeSeries('navier_stokes_cylinder/velocity_series')
-timeseries_p = TimeSeries('navier_stokes_cylinder/pressure_series')
+# Create time series
+timeseries_u = TimeSeries('flow_results/velocity_series')
+timeseries_p = TimeSeries('flow_results/pressure_series')
 
-# Save mesh to file (for use in reaction_system.py)
-File('navier_stokes_cylinder/cylinder.xml.gz') << mesh
+# Save mesh to file
+File('flow_results/cylinder.xml.gz') << mesh
 
 # Create progress bar
 progress = Progress('Time-stepping')
