@@ -11,6 +11,9 @@ from __future__ import print_function
 from fenics import *
 from mshr import *
 import numpy as np
+import matplotlib.pyplot as plt
+import utils
+import sys
 
 T = 1.0 # 5.0            # final time
 num_steps = 100 # 5000   # number of time steps
@@ -20,13 +23,26 @@ rho = 1            # density
 Lx, Ly = 2.2, 1.0 # domain size
 xC, yC = Lx/4., Ly/3. # position of the obstacle
 radius = 0.05 # radius of the obstacle
+nobs = 8
 eps = 0.05
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
-obstacle = Circle(Point(xC, yC), radius)
+#obstacle = Circle(Point(xC, yC), radius)
+def parametric_obstacle(t):
+    x = xC + radius * np.cos(t)
+    y = yC + radius * np.sin(t)
+    return x, y
+
+t_values = np.linspace(0, 2*np.pi, nobs + 1)
+vertices = [Point(*parametric_obstacle(t)) for t in t_values]
+
+obstacle = Polygon(vertices)
 domain = channel - obstacle
-mesh = generate_mesh(domain, 64)
+mesh = generate_mesh(domain, 16) #64)
+plot(mesh)
+plt.show()
+# sys.exit()
 
 # Define function spaces
 V = VectorFunctionSpace(mesh, 'P', 2)
@@ -36,7 +52,23 @@ Q = FunctionSpace(mesh, 'P', 1)
 inflow   = 'near(x[0], 0)'
 outflow  = f'near(x[0], {Lx})'
 walls    = f'near(x[1], 0) || near(x[1], {Ly})'
-obstacle_boundary = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
+
+
+# Define boundary condition
+
+
+#obstacle_boundary = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
+
+#obstacle_boundary = f'on_boundary && pow(x[0] - {xC}, 2) + pow(x[1] - {yC}, 2) < pow({radius + eps}, 2)'
+
+# def obstacle_boundary(x, on_boundary):
+#     return on_boundary and ((x[0] - xC)**2 + (x[1] - yC)**2 < (radius+eps)**2)
+
+xc = np.array([parametric_obstacle(t)[0] for t in t_values])
+yc = np.array([parametric_obstacle(t)[1] for t in t_values])
+def obstacle_boundary(x, on_boundary):
+    return on_boundary and utils.isInsideContour(x, xc=xc, yc=yc, tol=1.e-3)
+
 
 # Define inflow profile
 inflow_profile = (f'1.0', '0')
