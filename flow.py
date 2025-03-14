@@ -1,6 +1,6 @@
 """
 FEniCS tutorial demo program: Incompressible Navier-Stokes equations
-for flow around a cylinder using the Incremental Pressure Correction
+for flow around a obstacle using the Incremental Pressure Correction
 Scheme (IPCS).
 
   u' + u . nabla(u)) - div(sigma(u, p)) = f
@@ -18,14 +18,14 @@ dt = T / num_steps # time step size
 mu = 0.1 #0.001         # dynamic viscosity
 rho = 1            # density
 Lx, Ly = 2.2, 1.0 # domain size
-xC, yC = Lx/4., Ly/3. # position of the cylinder
-radius = 0.05 # radius of the cylinder
+xC, yC = Lx/4., Ly/3. # position of the obstacle
+radius = 0.05 # radius of the obstacle
 eps = 0.05
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
-cylinder = Circle(Point(xC, yC), radius)
-domain = channel - cylinder
+obstacle = Circle(Point(xC, yC), radius)
+domain = channel - obstacle
 mesh = generate_mesh(domain, 64)
 
 # Define function spaces
@@ -36,7 +36,7 @@ Q = FunctionSpace(mesh, 'P', 1)
 inflow   = 'near(x[0], 0)'
 outflow  = f'near(x[0], {Lx})'
 walls    = f'near(x[1], 0) || near(x[1], {Ly})'
-cylinder = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
+obstacle = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
 
 # Define inflow profile
 inflow_profile = (f'1.0', '0')
@@ -44,9 +44,9 @@ inflow_profile = (f'1.0', '0')
 # Define boundary conditions
 bcu_inflow = DirichletBC(V, Expression(inflow_profile, degree=2), inflow)
 bcu_walls = DirichletBC(V, Constant((0, 0)), walls)
-bcu_cylinder = DirichletBC(V, Constant((0, 0)), cylinder)
+bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle)
 bcp_outflow = DirichletBC(Q, Constant(0), outflow)
-bcu = [bcu_inflow, bcu_walls, bcu_cylinder]
+bcu = [bcu_inflow, bcu_walls, bcu_obstacle]
 bcp = [bcp_outflow]
 
 # Define trial and test functions
@@ -112,7 +112,7 @@ timeseries_u = TimeSeries('flow_results/velocity_series')
 timeseries_p = TimeSeries('flow_results/pressure_series')
 
 # Save mesh to file
-File('flow_results/cylinder.xml.gz') << mesh
+File('flow_results/obstacle.xml.gz') << mesh
 
 # Create progress bar
 progress = Progress('Time-stepping')
