@@ -21,11 +21,16 @@ dt = T / num_steps # time step size
 mu = 0.1 #0.001         # dynamic viscosity
 rho = 1            # density
 Lx, Ly = 2.2, 1.0 # domain size
+alpha = -20 * np.pi/180
 
 xc, yc = utils.NACAFoilPoints(101, m=0.10, p=0.3, t=0.05)
+# rotate the foil
+xc2 = xc*np.cos(alpha) - yc*np.sin(alpha)
+yc2 = xc*np.sin(alpha) + yc*np.cos(alpha)
 # shift/scale to the right location
-xfoil = 1*xc + Lx/4.
-yfoil = 1*yc + Ly/3.  
+xfoil = 1*xc2 + Lx/4.
+yfoil = 1*yc2 + Ly/2.
+  
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
