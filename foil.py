@@ -15,22 +15,27 @@ import matplotlib.pyplot as plt
 import utils
 import sys
 
-T = 1.0 # 5.0            # final time
+Lx, Ly = 2.2, 1.0 # domain size
+
+nresolution = 32
+nobstacle = 100
+vmax = 2.0
+dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
 num_steps = 100 # 5000   # number of time steps
-dt = T / num_steps # time step size
+T = num_steps * dt           # final time
 mu = 0.1 #0.001         # dynamic viscosity
 rho = 1            # density
-Lx, Ly = 2.2, 1.0 # domain size
 alpha = -20 * np.pi/180
 
-xc, yc = utils.NACAFoilPoints(101, m=0.10, p=0.3, t=0.05)
+# t is thickness
+#xc, yc = utils.NACAFoilPoints(nobstacle, m=0.10, p=0.3, t=0.1)
+xc, yc = utils.NACAFoilPoints(nobstacle, m=0.0, p=0.3, t=0.1)
 # rotate the foil
 xc2 = xc*np.cos(alpha) - yc*np.sin(alpha)
 yc2 = xc*np.sin(alpha) + yc*np.cos(alpha)
 # shift/scale to the right location
 xfoil = 1*xc2 + Lx/4.
 yfoil = 1*yc2 + Ly/2.
-  
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
@@ -38,10 +43,9 @@ vertices = [Point(xfoil[i], yfoil[i]) for i in range(len(xfoil))]
 
 obstacle = Polygon(vertices)
 domain = channel - obstacle
-mesh = generate_mesh(domain, 32)
-plot(mesh)
-plt.show()
-# sys.exit()
+mesh = generate_mesh(domain, nresolution)
+# plot(mesh)
+# plt.show()
 
 # Define function spaces
 V = VectorFunctionSpace(mesh, 'P', 2)
@@ -55,17 +59,6 @@ walls    = f'near(x[1], 0) || near(x[1], {Ly})'
 
 # Define boundary condition
 
-
-#obstacle_boundary = f'on_boundary && x[0]>{xC-radius-eps} && x[0]<{xC+radius+eps} && x[1]>{yC-radius-eps} && x[1]<{yC+radius+eps}'
-
-#obstacle_boundary = f'on_boundary && pow(x[0] - {xC}, 2) + pow(x[1] - {yC}, 2) < pow({radius + eps}, 2)'
-
-# def obstacle_boundary(x, on_boundary):
-#     return on_boundary and ((x[0] - xC)**2 + (x[1] - yC)**2 < (radius+eps)**2)
-
-# def obstacle_boundary(x, on_boundary):
-#     return on_boundary and utils.isInsideContour(x, xc=xfoil, yc=yfoil, tol=1.e-3)
-
 class ObstacleBoundary(SubDomain):
     def __init__(self, xc, yc):
         super().__init__()
@@ -73,7 +66,7 @@ class ObstacleBoundary(SubDomain):
         self.yc = yc
         
     def inside(self, x, on_boundary):
-        return on_boundary and utils.isInsideContour(x, xc=self.xc, yc=self.yc, tol=1.e-3)
+        return on_boundary and utils.isInsideContour(x, xc=self.xc, yc=self.yc, tol=0.001)
 
 obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
@@ -87,6 +80,16 @@ bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle_boundary)
 bcp_outflow = DirichletBC(Q, Constant(0), outflow)
 bcu = [bcu_inflow, bcu_walls, bcu_obstacle]
 bcp = [bcp_outflow]
+
+# Mark the boundary so we can compute the lift/drag
+boundary_markers = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+boundary_markers.set_all(0)
+obstacle_boundary.mark(boundary_markers, 1)
+# Define the measure for the boundary
+ds = Measure('ds', domain=mesh, subdomain_data=boundary_markers)
+# Compute the normal vector
+normal = FacetNormal(mesh)
+
 
 # Define trial and test functions
 u = TrialFunction(V)
@@ -155,7 +158,13 @@ File('flow_results/obstacle.xml.gz') << mesh
 
 # Create progress bar
 progress = Progress('Time-stepping')
-set_log_level(16) #(PROGRESS)
+#set_log_level(16) #(PROGRESS)
+
+# # Set PETSc options to turn off solver messages
+# PETScOptions.set('ksp_monitor', False)
+# PETScOptions.set('ksp_view', False)
+# PETScOptions.set('log_view', False)
+
 
 # Time-stepping
 t = 0
@@ -193,6 +202,15 @@ for n in range(num_steps):
     # Update previous solution
     u_n.assign(u_)
     p_n.assign(p_)
+    
+
+    # Define the lift and drag integrals
+    lift = assemble(p_ * normal[1] * ds(1)) # ds(1) means over contour tagged with 1
+    drag = assemble(p_ * normal[0] * ds(1))
+
+    print('-'*30)
+    print(f"{n} Lift force: {lift}")
+    print(f"{n} Drag force: {drag}")
 
     # Update progress bar
     #progress.update(t / T)
@@ -201,25 +219,4 @@ for n in range(num_steps):
 # Hold plot
 #interactive()
 
-# compute the lift/drag
-# Mark the boundary
-boundary_markers = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-boundary_markers.set_all(0)
-obstacle_boundary.mark(boundary_markers, 1)
 
-# Define the measure for the boundary
-ds = Measure('ds', domain=mesh, subdomain_data=boundary_markers)
-
-# Compute the normal vector
-n = FacetNormal(mesh)
-
-# Define the lift and drag integrals
-lift = assemble(p * n[1] * ds(1))
-drag = assemble(p * n[0] * ds(1))
-
-# Extract the scalar values
-lift_value = lift.get_local().sum()
-drag_value = drag.get_local().sum()
-
-print(f"Lift force: {lift_value}")
-print(f"Drag force: {drag_value}")

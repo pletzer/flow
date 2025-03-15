@@ -1,5 +1,24 @@
 import numpy as np
 
+def isInsideContour2(x, xc, yc, tol):
+    # Ray-casting algorithm for point-in-polygon test
+    n = len(xc)
+    inside = False
+    p1x, p1y = xc[0], yc[0]
+    for i in range(n + 1):
+        p2x, p2y = xc[i %n], yc[i %n]
+        if x[1] > min(p1y, p2y):
+            if x[1] <= max(p1y, p2y):
+                if x[0] <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (x[1] - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or x[0] <= xinters:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+    return inside
+
+
+
 def isInsideContour(p, xc, yc, tol):
     """
     Check if a point is inside closed contour
@@ -9,10 +28,6 @@ def isInsideContour(p, xc, yc, tol):
     @param yc array of y points, anticlockwise and must close
     @return True if p is inside, False otherwise
     """
-
-    # number of segments
-    numSeg = len(xc) - 1
-
     # vectors from point p to start point of segment
     a = np.array([xc[:-1], yc[:-1]])
     a[0, :] -= p[0]
@@ -40,13 +55,14 @@ def NACAFoilPoints(npts, m, p, t):
     assert(p > 0 and p < 1)
     n1 = int(npts * p / 2)
     n2 = int(npts * (1 - p) / 2)
+    dx = 1./npts # normalized distance
     
     # first part
     x1 = np.linspace(0., p, n1)
     yc1 = m*(2*p*x1 - x1**2)/p**2
     
     # second part
-    x2 = np.linspace(p+1.e-3, 1., n2)
+    x2 = np.linspace(p + dx, 1. - dx, n2)
     yc2 = m*((1-2*p) + 2*p*x2 - x2**2)/(1 - p)**2
     
     x = np.concatenate((x1, x2))
