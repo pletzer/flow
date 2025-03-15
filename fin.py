@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import utils
 import sys
 
-Lx, Ly = 2.2, 1.0 # domain size
+Lx, Ly = 1.0, 0.7 # domain size
 
 nresolution = 64
 nobstacle = 100
@@ -23,8 +23,8 @@ vmax = 2.0
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
 num_steps = 100 # 5000   # number of time steps
 T = num_steps * dt           # final time
-mu = 0.001 #0.001         # dynamic viscosity
-rho = 1         # density
+mu = 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
+rho = 1000         # density of water
 alpha = -5 * np.pi/180
 
 # t is thickness
@@ -35,7 +35,7 @@ xc2 = xc*np.cos(alpha) - yc*np.sin(alpha)
 yc2 = xc*np.sin(alpha) + yc*np.cos(alpha)
 # shift/scale to the right location
 xfoil = 1*xc2 + Lx/4.
-yfoil = 1*yc2 + Ly/2.3
+yfoil = 1*yc2 + Ly/2.5
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
