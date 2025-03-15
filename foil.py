@@ -63,9 +63,19 @@ walls    = f'near(x[1], 0) || near(x[1], {Ly})'
 # def obstacle_boundary(x, on_boundary):
 #     return on_boundary and ((x[0] - xC)**2 + (x[1] - yC)**2 < (radius+eps)**2)
 
-def obstacle_boundary(x, on_boundary):
-    return on_boundary and utils.isInsideContour(x, xc=xfoil, yc=yfoil, tol=1.e-3)
+# def obstacle_boundary(x, on_boundary):
+#     return on_boundary and utils.isInsideContour(x, xc=xfoil, yc=yfoil, tol=1.e-3)
 
+class ObstacleBoundary(SubDomain):
+    def __init__(self, xc, yc):
+        super().__init__()
+        self.xc = xc
+        self.yc = yc
+        
+    def inside(self, x, on_boundary):
+        return on_boundary and utils.isInsideContour(x, xc=self.xc, yc=self.yc, tol=1.e-3)
+
+obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
 # Define inflow profile
 inflow_profile = (f'1.0', '0')
@@ -190,3 +200,26 @@ for n in range(num_steps):
 
 # Hold plot
 #interactive()
+
+# compute the lift/drag
+# Mark the boundary
+boundary_markers = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+boundary_markers.set_all(0)
+obstacle_boundary.mark(boundary_markers, 1)
+
+# Define the measure for the boundary
+ds = Measure('ds', domain=mesh, subdomain_data=boundary_markers)
+
+# Compute the normal vector
+n = FacetNormal(mesh)
+
+# Define the lift and drag integrals
+lift = assemble(p * n[1] * ds(1))
+drag = assemble(p * n[0] * ds(1))
+
+# Extract the scalar values
+lift_value = lift.get_local().sum()
+drag_value = drag.get_local().sum()
+
+print(f"Lift force: {lift_value}")
+print(f"Drag force: {drag_value}")
