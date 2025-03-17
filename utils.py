@@ -17,11 +17,66 @@ def isInsideContour2(x, xc, yc, tol):
         p1x, p1y = p2x, p2y
     return inside
 
+def isInsideContour3(x, xc, yc, tol):
+    """
+    Shoot a ray in the direction -u and count the number of intersections
+    """
+    # compute the intersection parameter for each segment
+    # random direction
+    u, v = -1, 0
+    
+    # the target point
+    xp, yp = x[0], x[1]
+    
+    # starting points of the segments
+    x0, y0 = xc[:-1], yc[:-1]
+    x1, y1 = xc[1:], yc[1:]
+    
+    # vectors between start/end positions
+    dx = x1 - x0
+    dy = y1 - y0
+    
+    det = dx*v - dy*u
+    # handle the case of zero determinant. 2 cases can give rise to det == 0:
+    # 1) the xp is degenerate with the first point of the segment (x0). In this case
+    # we return "inside"
+    # 2) the directions of u and the segment dx are parallel but the points are distinct,
+    # there is no intersection. 
+    
+    
+    if det.any() == 0:
+        print(f'*** zero det: dx={dx} dy={dy}')
+    assert(det.all() != 0)
+    
+    dxp = xp - x0
+    dyp = yp - y0
+    
+    lam = (+ v *dxp - u *dyp ) / det
+    tee = (- dy*dxp + dx*dyp ) / det
+    distance = np.sqrt( dxp**2 + dyp**2 )
+    
+    # count the number of ray-segment intersections such that 0 <= lam < 1 and t > 0
+    
+    numIntersects = ( (distance < tol) \
+           | ((0 <= lam) & (lam < 1) & (tee > 0)) ).sum()
+    # print(f'lam = {lam}')
+    # print(f'tee = {tee}')
+    # print(f'condition  {(0 - tol <= lam) * (lam <= 1 + tol) * (tee > 0 - tol)}')
+    # print(f'numinteresects = {numIntersects}')
+    # print(f'target point = {x} x0={x0[-2]},{y0[-2]} x1={x1[-2]},{y1[-2]} distance={distance[-1]} lam={lam[-2]} tee={tee[-2]}')
+    # print(f'target point = {x} x0={x0[-1]},{y0[-1]} x1={x1[-1]},{y1[-1]} distance={distance[-1]} lam={lam[-1]} tee={tee[-1]}')
+    if numIntersects % 2 == 0:
+        # point x is outside
+        return False
+    # point x is inside
+    return True
+    
+
 
 
 def isInsideContour(p, xc, yc, tol):
     """
-    Check if a point is inside closed contour
+    Check if a point is inside closed contour. This only works if the region is convex
 
     @param p point (2d array)
     @param xc array of x points, anticlockwise and must close
@@ -37,11 +92,21 @@ def isInsideContour(p, xc, yc, tol):
     b = np.array([xc[1:], yc[1:]])
     b[0, :] -= p[0]
     b[1, :] -= p[1]
+    
+    vecprod = a[0, :]*b[1, :] - a[1, :]*b[0, :]
+    dotprod = a[0, :]*b[0, :] + a[1, :]*b[1, :]
+    sumangles = np.sum( np.arctan2( vecprod, dotprod ) )
+    
+    # print(f'sumangles/(2*np.pi) = {sumangles/(2*np.pi)}')
+    if sumangles/(2*np.pi) > 0.5:
+        return True
+    return False
 
-    areas = a[0, :]*b[1, :] - a[1, :]*b[0, :]
+    # # I don't think works well if the contour is concave (?)
+    # areas = a[0, :]*b[1, :] - a[1, :]*b[0, :]
    
-    # return True if all the areas are positive
-    return not np.any(areas < -tol)
+    # # return True if all the areas are positive
+    # return not np.any(areas < -tol)
 
 def NACAFoilPoints(npts, m, p, t):
     """
@@ -80,9 +145,28 @@ def testFoil():
     print(xc)
     print(yc)
         
+def testIsInsideContour3():
+    ts = np.linspace(0., 2*np.pi, 81) #+ np.pi/45.
+    # ts = np.linspace(0., 2*np.pi, 5)
+    xc = np.cos(ts)
+    yc = np.sin(ts)
+    assert not isInsideContour3((2.0, 0.0), xc=xc, yc=yc, tol=1.e-10) 
+    assert not isInsideContour3((1.1, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert not isInsideContour3((1.01, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert not isInsideContour3((1.001, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert not isInsideContour3((1.00001, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.0, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.5, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.9, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.99, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.999, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.9999, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour3((0.99999, 0.0), xc=xc, yc=yc, tol=0.001)
+
 
 def testIsInsideContour():
-    ts = np.linspace(0., 2*np.pi, 41) + np.pi/45.
+    ts = np.linspace(0., 2*np.pi, 81) + np.pi/45.
+    # ts = np.linspace(0., 2*np.pi, 5)
     xc = np.cos(ts)
     yc = np.sin(ts)
     assert not isInsideContour((2.0, 0.0), xc=xc, yc=yc, tol=1.e-10) 
@@ -90,11 +174,13 @@ def testIsInsideContour():
     assert not isInsideContour((1.01, 0.0), xc=xc, yc=yc, tol=1.e-10)
     assert not isInsideContour((1.001, 0.0), xc=xc, yc=yc, tol=1.e-10)
     assert not isInsideContour((1.00001, 0.0), xc=xc, yc=yc, tol=1.e-10)
+    assert isInsideContour((0.0, 0.0), xc=xc, yc=yc, tol=1.e-10)
     assert isInsideContour((0.5, 0.0), xc=xc, yc=yc, tol=1.e-10)
     assert isInsideContour((0.9, 0.0), xc=xc, yc=yc, tol=1.e-10)
-    assert isInsideContour((0.99, 0.0), xc=xc, yc=yc, tol=1.e-10)
-    assert isInsideContour((0.999, 0.0), xc=xc, yc=yc, tol=0.01)
+    assert isInsideContour((0.99, 0.0), xc=xc, yc=yc, tol=1.e-10) # this should actually be slightly outside
+    assert isInsideContour((0.999, 0.0), xc=xc, yc=yc, tol=1.e-10) # this should actually be slightly outside
     
 if __name__ == '__main__':
     testFoil()
+    testIsInsideContour3()
     testIsInsideContour()

@@ -17,25 +17,26 @@ import sys
 
 Lx, Ly = 1.0, 0.7 # domain size
 
-nresolution = 64
-nobstacle = 100
+nresolution = 32
+nobstacle = 40
 vmax = 2.0
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
 num_steps = 100 # 5000   # number of time steps
 T = num_steps * dt           # final time
-mu = 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
-rho = 1000         # density of water
+mu = 0.001 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
+rho = 1        # density of water, need to change
 alpha = -5 * np.pi/180
+normThickness = 0.1
 
 # t is thickness
 #xc, yc = utils.NACAFoilPoints(nobstacle, m=0.10, p=0.3, t=0.1)
-xc, yc = utils.NACAFoilPoints(nobstacle, m=0.0, p=0.3, t=0.05)
+xc, yc = utils.NACAFoilPoints(nobstacle, m=0.0, p=0.3, t=normThickness)
 # rotate the foil
 xc2 = xc*np.cos(alpha) - yc*np.sin(alpha)
 yc2 = xc*np.sin(alpha) + yc*np.cos(alpha)
 # shift/scale to the right location
-xfoil = 1*xc2 + Lx/4.
-yfoil = 1*yc2 + Ly/2.5
+xfoil = 0.4*xc2 + Lx/4.
+yfoil = 0.4*yc2 + Ly/2.3
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
@@ -66,7 +67,7 @@ class ObstacleBoundary(SubDomain):
         self.yc = yc
         
     def inside(self, x, on_boundary):
-        return on_boundary and utils.isInsideContour(x, xc=self.xc, yc=self.yc, tol=0.001)
+        return on_boundary and utils.isInsideContour3(x, xc=self.xc, yc=self.yc, tol=1.e-10)
 
 obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
