@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def isInsideContour2(x, xc, yc, tol):
     # Ray-casting algorithm for point-in-polygon test
@@ -70,8 +71,6 @@ def isInsideContour3(x, xc, yc, tol):
         return False
     # point x is inside
     return True
-    
-
 
 
 def isInsideContour(p, xc, yc, tol):
@@ -141,9 +140,42 @@ def NACAFoilPoints(npts, m, p, t):
     return xContour, yContour
     
 def testFoil():
-    xc, yc = NACAFoilPoints(21, m=0.05, p=0.4, t = 0.1)
+    xc, yc = NACAFoilPoints(21, m=0.05, p=0.4, t=0.1)
     print(xc)
     print(yc)
+    
+def testIsInsideContour3_2():
+    n = 200
+    # contour
+    xc, yc = NACAFoilPoints(n, m=0.05, p=0.4, t=0.1)
+    # contour slighlty inside
+    xc2, yc2 = NACAFoilPoints(n, m=0.05, p=0.4, t=0.5*0.1)
+    count = 0
+    for i in range(1, len(xc2) - 1):
+        pt =(xc2[i], yc2[i])
+        try:
+            assert isInsideContour3(pt, xc=xc, yc=yc, tol=1.e-10)
+        except:
+            print(f'ERROR point {pt} {i} found to be outside, but should be inside')
+            plt.plot(xc, yc, 'k-', [pt[0]], [pt[1]], 'r*')
+            plt.axis('equal')
+            plt.show()
+            count += 1
+    # contour slightly outside
+    xc2, yc2 = NACAFoilPoints(n, m=0.05, p=0.4, t=1.5*0.1)
+    for i in range(1, len(xc2) - 1):
+        pt =(xc2[i], yc2[i])
+        try:
+            assert not isInsideContour3(pt, xc=xc, yc=yc, tol=1.e-10)
+        except:
+            print(f'ERROR point {pt} {i} found to be inside, but should be outsides')
+            plt.plot(xc, yc, 'k-', [pt[0]], [pt[1]], 'ro')
+            plt.axis('equal')
+            plt.show()
+            count += 1
+    print (f'Found {count} misplaced points')
+    
+    
         
 def testIsInsideContour3():
     ts = np.linspace(0., 2*np.pi, 81) #+ np.pi/45.
@@ -182,5 +214,6 @@ def testIsInsideContour():
     
 if __name__ == '__main__':
     testFoil()
+    testIsInsideContour3_2()
     testIsInsideContour3()
     testIsInsideContour()

@@ -17,15 +17,15 @@ import sys
 
 Lx, Ly = 1.0, 0.7 # domain size
 
-nresolution = 32
-nobstacle = 40
+nresolution = 64
+nobstacle = 80
 vmax = 2.0
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
-num_steps = 100 # 5000   # number of time steps
+num_steps = 200 # 5000   # number of time steps
 T = num_steps * dt           # final time
-mu = 0.001 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
+mu = 0.01 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
 rho = 1        # density of water, need to change
-alpha = -5 * np.pi/180
+alpha = -10 * np.pi/180
 normThickness = 0.1
 
 # t is thickness
