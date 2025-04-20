@@ -32,8 +32,8 @@ U = FunctionSpace(mesh, 'P', 1)
 
 # Define boundaries
 bcs = [DirichletBC(U, Constant(0), hole), 
-       DirichletBC(U, Constant(0), 'near(x[0], 0) || near(x[1], 0) || near(x[1], 1)'),    
-       DirichletBC(U, Constant((1)), 'near(x[1], 1)')]
+       DirichletBC(U, Constant(0), 'near(x[0], 1) || near(x[0], 0)'),
+       DirichletBC(U, Constant(1), 'near(x[1], 1)')]
 
 
 # Define trial and test functions
@@ -51,5 +51,7 @@ L = dot(f, v)*dx
 u = Function(U)
 solve(a == L, u, bcs)
 
-xdmffile_u = XDMFFile('t.xdmf')
+print(f'u = {u.vector().get_local()}')
+
+xdmffile_u = XDMFFile('laplace.xdmf')
 xdmffile_u.write(u, 0)
