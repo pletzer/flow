@@ -18,9 +18,11 @@ class Hole(SubDomain):
         return [Point(self.xc[i], self.yc[i]) for i in range(len(self.xc))]
 
     def inside(self, x, on_boundary):
-        #return on_boundary and ((x[0] - self.x0)**2 + (x[1] - self.y0)**2 <= self.radius**2)
-        return (on_boundary or utils.isInsideContour3(x, self.xc, self.yc, tol=1e-12)) and \
-            (x[0] > 0.0 and x[1] > 0.0 and x[0] < 1.0 and x[1] < 1.0)
+        # we don't need to check the inside of the hole, we just need to remove the extranal boundary 
+        # so we're left with the hole
+        delta = 0.01
+        return (on_boundary and \
+            (x[0] > 0.0 + delta and x[1] > 0.0 + delta and x[0] < 1.0 - delta and x[1] < 1.0 - delta))
         #return utils.isInsideContour3(x, self.xc, self.yc, tol=1e-12)
 
 xfoil, yfoil = utils.NACAFoilPoints(nobs, m=0.0, p=0.3, t=0.1)

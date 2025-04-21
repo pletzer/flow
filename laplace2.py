@@ -5,6 +5,8 @@ import utils
 
 nobs = 100
 nres = 32
+xmin, xmax = 0.0, 1.0
+ymin, ymax = 0.0, 1.0
 
 # Define boundary condition
 class Hole(SubDomain):
@@ -18,8 +20,9 @@ class Hole(SubDomain):
         return [Point(self.xc[i], self.yc[i]) for i in range(len(self.xc))]
 
     def inside(self, x, on_boundary):
-        #return on_boundary and ((x[0] - self.x0)**2 + (x[1] - self.y0)**2 <= self.radius**2)
-        return on_boundary and utils.isInsideContour3(x, self.xc, self.yc, tol=1.e-10)
+        delta = 0.01 # min distance of hole to the box boundary
+        return on_boundary and (x[0] > xmin + delta) and (x[1] > ymin + delta) \
+            and (x[0] < xmax - delta) and (x[1] < ymax - delta)
 
 xfoil, yfoil = utils.NACAFoilPoints(nobs, m=0.0, p=0.3, t=0.1)
 xc = 0.4*xfoil + 0.3
@@ -27,7 +30,7 @@ yc = 0.4*yfoil + 0.4
 hole = Hole(xc, yc)
 
 # Define mesh and function space
-box = Rectangle(Point(0, 0), Point(1, 1))
+box = Rectangle(Point(xmin, ymin), Point(xmax, ymax))
 domain = box - Polygon(hole.get_vertices())
 mesh = generate_mesh(domain, nres)
 

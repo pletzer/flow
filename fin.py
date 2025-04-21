@@ -15,18 +15,18 @@ import matplotlib.pyplot as plt
 import utils
 import sys
 
-Lx, Ly = 1.0, 0.7 # domain size
+Lx, Ly = 2.5, 2.0 # domain size
 
 nresolution = 32
-nobstacle = 1000
+nobstacle = 100
 vmax = 2.0
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
-num_steps = 100 # 5000   # number of time steps
+num_steps = 200 # 5000   # number of time steps
 T = num_steps * dt           # final time
-mu = 0.01 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
+mu = 0.001 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
 rho = 1        # density of water, need to change
 alpha = -10 * np.pi/180
-normThickness = 0.1
+normThickness = 0.05
 
 # t is thickness
 #xc, yc = utils.NACAFoilPoints(nobstacle, m=0.10, p=0.3, t=0.1)
@@ -35,8 +35,8 @@ xc, yc = utils.NACAFoilPoints(nobstacle, m=0.0, p=0.3, t=normThickness)
 xc2 = xc*np.cos(alpha) - yc*np.sin(alpha)
 yc2 = xc*np.sin(alpha) + yc*np.cos(alpha)
 # shift/scale to the right location
-xfoil = 0.4*xc2 + Lx/4.
-yfoil = 0.4*yc2 + Ly/2.3
+xfoil = xc2 + Lx/4.
+yfoil = yc2 + Ly/2.3
 
 # Create mesh
 channel = Rectangle(Point(0, 0), Point(Lx, Ly))
@@ -67,10 +67,9 @@ class ObstacleBoundary(SubDomain):
         self.yc = yc
         
     def inside(self, x, on_boundary):
-        #return on_boundary and utils.isInsideContour3(x, xc=self.xc, yc=self.yc, tol=1.e-10)
-        tol = 1.e-10
-        return (on_boundary or utils.isInsideContour3(x, self.xc, self.yc, tol=1e-10)) and \
-            (x[0] > 0.0 + tol and x[1] > 0.0 + tol and x[0] < Lx - tol and x[1] < Ly - tol)
+        tol = 0.01
+        return (on_boundary and \
+            (x[0] > 0.0 + tol) and (x[1] > 0.0 + tol) and (x[0] < Lx - tol) and (x[1] < Ly - tol))
 
 obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
@@ -214,7 +213,7 @@ for n in range(num_steps):
     drag = assemble(p_ * normal[0] * ds(1))
 
     print('-'*30)
-    print(f"{n} Lift: {lift:.3f} Drag: {drag:.3f} L/D: {lift/drag:.3f}")
+    print(f"{n} Lift: {lift:.6f} Drag: {drag:.6f} L/D: {lift/drag:.6f}")
 
     # Update progress bar
     #progress.update(t / T)
