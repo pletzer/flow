@@ -17,11 +17,11 @@ import sys
 
 Lx, Ly = 1.0, 0.7 # domain size
 
-nresolution = 64
-nobstacle = 80
+nresolution = 32
+nobstacle = 1000
 vmax = 2.0
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
-num_steps = 200 # 5000   # number of time steps
+num_steps = 100 # 5000   # number of time steps
 T = num_steps * dt           # final time
 mu = 0.01 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
 rho = 1        # density of water, need to change
@@ -67,7 +67,10 @@ class ObstacleBoundary(SubDomain):
         self.yc = yc
         
     def inside(self, x, on_boundary):
-        return on_boundary and utils.isInsideContour3(x, xc=self.xc, yc=self.yc, tol=1.e-10)
+        #return on_boundary and utils.isInsideContour3(x, xc=self.xc, yc=self.yc, tol=1.e-10)
+        tol = 1.e-10
+        return (on_boundary or utils.isInsideContour3(x, self.xc, self.yc, tol=1e-10)) and \
+            (x[0] > 0.0 + tol and x[1] > 0.0 + tol and x[0] < Lx - tol and x[1] < Ly - tol)
 
 obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
@@ -186,6 +189,7 @@ for n in range(num_steps):
 
     # Step 3: Velocity correction step
     b3 = assemble(L3)
+    #[bc.apply(b3) for bc in bcu] # should this be added?????
     solve(A3, u_.vector(), b3, 'cg', 'sor')
 
     # Plot solution

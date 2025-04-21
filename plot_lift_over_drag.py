@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 df = pd.read_csv(sys.argv[1])
 
-angle = df['alpha']
+angle = df['alpha'] * 180/np.pi
 lift = np.array(df['lift'])
 error_lift = 1.96 * np.array(df['std_lift'])
 drag = np.array(df['drag'])
