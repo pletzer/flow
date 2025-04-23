@@ -22,7 +22,7 @@ nresolution = 32
 nobstacle = 100
 vmax = 2.0 # used to set the time step
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
-num_steps = 2000   # max number of time steps
+num_steps = 1000   # max number of time steps
 T = num_steps * dt           # final time
 mu = 0.001 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
 rho = 1         # density
@@ -30,7 +30,7 @@ finThickness = 0.10 # normalized to its length
 
 # attack angle
 results = {'alpha': [], 'lift': [], 'drag': [], 'std_drag': [], 'std_lift': []}
-for alpha in np.linspace(0 * np.pi/180, 12 * np.pi/180, 21):
+for alpha in np.linspace(1 * np.pi/180, 10 * np.pi/180, 10):
 
     # t is the thickness
     xc, yc = utils.NACAFoilPoints(nobstacle, m=0.0, p=0.3, t=finThickness)
@@ -38,7 +38,7 @@ for alpha in np.linspace(0 * np.pi/180, 12 * np.pi/180, 21):
     xc2 = xc*np.cos(alpha) + yc*np.sin(alpha)
     yc2 = -xc*np.sin(alpha) + yc*np.cos(alpha)
     # shift/scale to the right location
-    xfoil = 0.3*xc2 + Lx/4.
+    xfoil = 0.3*xc2 + Lx/4
     yfoil = 0.3*yc2 + Ly/2.5
 
     # Create mesh
@@ -76,11 +76,8 @@ for alpha in np.linspace(0 * np.pi/180, 12 * np.pi/180, 21):
 
     obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
-    # Define inflow profile
-    inflow_profile = (f'1.0', '0')
-
     # Define boundary conditions
-    bcu_inflow = DirichletBC(V, Expression(inflow_profile, degree=2), inflow)
+    bcu_inflow = DirichletBC(V, Constant((1, 0)), inflow)
     bcu_walls = DirichletBC(V, Constant((0, 0)), walls)
     bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle_boundary)
     bcp_outflow = DirichletBC(Q, Constant(0), outflow)
@@ -175,21 +172,15 @@ for alpha in np.linspace(0 * np.pi/180, 12 * np.pi/180, 21):
         b1 = assemble(L1)
         [bc.apply(b1) for bc in bcu]
         solve(A1, u_.vector(), b1, 'bicgstab', 'hypre_amg')
-        #solve(A1, u_.vector(), b1, 'gmres', 'ilu')
 
         # Step 2: Pressure correction step
         b2 = assemble(L2)
         [bc.apply(b2) for bc in bcp]
         solve(A2, p_.vector(), b2, 'bicgstab', 'hypre_amg')
-        #solve(A2, p_.vector(), b2, 'gmres', 'ilu')
 
         # Step 3: Velocity correction step
         b3 = assemble(L3)
         solve(A3, u_.vector(), b3, 'cg', 'sor')
-
-        # Plot solution
-        # plot(u_, title='Velocity')
-        # plot(p_, title='Pressure')
 
         # Save solution to file (XDMF/HDF5)
         xdmffile_u.write(u_, t)

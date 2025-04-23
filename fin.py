@@ -45,8 +45,6 @@ vertices = [Point(xfoil[i], yfoil[i]) for i in range(len(xfoil))]
 obstacle = Polygon(vertices)
 domain = channel - obstacle
 mesh = generate_mesh(domain, nresolution)
-# plot(mesh)
-# plt.show()
 
 # Define function spaces
 V = VectorFunctionSpace(mesh, 'P', 2)
@@ -65,11 +63,16 @@ class ObstacleBoundary(SubDomain):
         super().__init__()
         self.xc = xc
         self.yc = yc
+        self.xmin = min(xc)
+        self.xmax = max(xc)
+        self.ymin = min(yc)
+        self.ymax = max(yc)
         
     def inside(self, x, on_boundary):
-        tol = 0.01
+        tol = 0.01*min(Lx, Ly)
         return (on_boundary and \
-            (x[0] > 0.0 + tol) and (x[1] > 0.0 + tol) and (x[0] < Lx - tol) and (x[1] < Ly - tol))
+            (x[0] > self.xmin - tol) and (x[0] < self.xmax + tol) and \
+            (x[1] > self.ymin - tol) and (x[1] < self.ymax + tol))
 
 obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
