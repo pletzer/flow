@@ -20,12 +20,13 @@ Lx, Ly = 1.0, 1.0 # domain size
 
 nresolution = 32
 nobstacle = 100
-vmax = 2.0 # used to set the time step
+vinput = 1.0
+vmax = 2.0 * vinput # used to set the time step
 dt = 0.1 * np.sqrt(Lx * Ly / nresolution**2)/ vmax # time step
-num_steps = 1000   # max number of time steps
+num_steps = 100   # max number of time steps
 T = num_steps * dt           # final time
 mu = 0.001 # 0.0010518 #  dynamic viscosity of water at 18 deg C #0.001
-rho = 1         # density
+rho = 1        # density
 finThickness = 0.10 # normalized to its length 
 
 # attack angle
@@ -48,8 +49,6 @@ for alpha in np.linspace(1 * np.pi/180, 10 * np.pi/180, 10):
     obstacle = Polygon(vertices)
     domain = channel - obstacle
     mesh = generate_mesh(domain, nresolution)
-    # plot(mesh)
-    # plt.show()
 
     # Define function spaces
     V = VectorFunctionSpace(mesh, 'P', 2)
@@ -67,19 +66,24 @@ for alpha in np.linspace(1 * np.pi/180, 10 * np.pi/180, 10):
             super().__init__()
             self.xc = xc
             self.yc = yc
+            self.xmin = min(xc)
+            self.xmax = max(xc)
+            self.ymin = min(yc)
+            self.ymax = max(yc)
             
         def inside(self, x, on_boundary):
-            delta = 0.01
-            # box around the obstacle
-            return on_boundary and (x[0] > 0 + delta) and (x[0] < Lx - delta) and \
-                                   (x[1] > 0 + delta) and (x[1] < Ly - delta)
+            tol = 0.01*min(Lx, Ly)
+            return (on_boundary and \
+                (x[0] > self.xmin - tol) and (x[0] < self.xmax + tol) and \
+                (x[1] > self.ymin - tol) and (x[1] < self.ymax + tol))
+
 
     obstacle_boundary = ObstacleBoundary(xc=xfoil, yc=yfoil)
 
     # Define boundary conditions
-    bcu_inflow = DirichletBC(V, Constant((1, 0)), inflow)
-    bcu_walls = DirichletBC(V, Constant((0, 0)), walls)
-    bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle_boundary)
+    bcu_inflow = DirichletBC(V, Constant((vinput, 0)), inflow)
+    bcu_walls = DirichletBC(V, Constant((vinput, 0)), walls)
+    bcu_obstacle = DirichletBC(V, Constant((0, 0)), obstacle_boundary) # no slip
     bcp_outflow = DirichletBC(Q, Constant(0), outflow)
     bcu = [bcu_inflow, bcu_walls, bcu_obstacle]
     bcp = [bcp_outflow]
@@ -92,7 +96,6 @@ for alpha in np.linspace(1 * np.pi/180, 10 * np.pi/180, 10):
     ds = Measure('ds', domain=mesh, subdomain_data=boundary_markers)
     # Compute the normal vector
     normal = FacetNormal(mesh)
-
 
     # Define trial and test functions
     u = TrialFunction(V)
