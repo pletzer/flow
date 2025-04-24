@@ -1,3 +1,4 @@
+
 from fenics import *
 from mshr import *
 import numpy as np
@@ -9,42 +10,41 @@ import numpy as np
 
 Lx = 2.0
 
-channel = Rectangle(Point(0, -1), Point(1, 1))
+channel = Rectangle(Point(0, -1), Point(Lx, 1))
 vertices = [Point(0., -0.1), Point(Lx, -0.1), Point(Lx, 0.1), Point(0., 0.1), Point(0., -0.1)]
 obstacle = Polygon(vertices)
 domain = channel - obstacle
 mesh = generate_mesh(domain, 16)
 
-# create function space
+# Create function space
 Q = FunctionSpace(mesh, 'P', 1)
 p = Function(Q)
 p_values = p.vector()
 
-
-# create subdomains
+# Create subdomains
 class Top(SubDomain):
     def inside(self, x, on_boundary):
         return x[1] >= 0.1 - 1.e-10
-    
+
 class Bottom(SubDomain):
     def inside(self, x, on_boundary):
         return x[1] <= -0.1 + 1.e-10
-    
+
 class Wing(SubDomain):
     def inside(self, x, on_boundary):
         tol = 1.e-10
         return on_boundary and x[1] <= 0.1 + tol and x[1] >= -0.1 - tol
-    
 
 subdomains = MeshFunction("size_t", mesh, mesh.topology().dim())
+subdomains.set_all(0)
 top = Top()
 bottom = Bottom()
+wing = Wing()
 top.mark(subdomains, 2)
 bottom.mark(subdomains, 1)
+wing.mark(subdomains, 3)
 
-# assign the pressure to the top and bottom subdomains
-
-# Get the dof map
+# Assign the pressure to the top and bottom subdomains
 dofmap = Q.dofmap()
 dofs = dofmap.dofs()
 
@@ -55,23 +55,21 @@ for i in range(len(dofs)):
         p_values[i] = 1.0
     elif top.inside(x, False):
         p_values[i] = 0.0
-
-
 xdmffile_p = XDMFFile('testlift_pressure.xdmf')
 xdmffile_p.write(p, 0)
 
-# compute the lift
+# Compute the lift
 # Mark the boundary so we can compute the lift/drag
 boundary_markers = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 boundary_markers.set_all(0)
 obstacle_boundary = Wing()
 obstacle_boundary.mark(boundary_markers, 1)
+
 # Define the measure for the boundary
 ds = Measure('ds', domain=mesh, subdomain_data=boundary_markers)
 # Compute the normal vector
 normal = FacetNormal(mesh)
 
-# compute the lift
+# Compute the lift
 lift = assemble(p * normal[1] * ds(1))
 print(f'lift = {lift}')
-
