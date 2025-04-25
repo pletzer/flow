@@ -12,9 +12,10 @@ from mshr import *
 import numpy as np
 import utils
 import defopt
+import pandas as pd
 
 def main(*, Lx: float=2.5, Ly: float=2.0, nres: int=32, nobst: int=100, nsteps: int=100, \
-    alpha_deg: float=10., Re: float=1000, normThickness: float=0.1):
+    alpha_deg: float=10., Re: float=1000, normThickness: float=0.1, output_dir: str='fin_results'):
     """
     Run lif/drag computation
     @param Lx x domain size
@@ -25,6 +26,7 @@ def main(*, Lx: float=2.5, Ly: float=2.0, nres: int=32, nobst: int=100, nsteps: 
     @param nsteps number of time steps, the time step size depends on Re
     @param alpha_deg attack angle in degrees
     @param normThickness normalised thickness of the fin
+    @param output_dir results will be written to this directory
     """
 
     vinput = 1.0
@@ -149,15 +151,8 @@ def main(*, Lx: float=2.5, Ly: float=2.0, nres: int=32, nobst: int=100, nsteps: 
     [bc.apply(A2) for bc in bcp]
 
     # Create XDMF files for visualization output
-    xdmffile_u = XDMFFile('flow_results/velocity.xdmf')
-    xdmffile_p = XDMFFile('flow_results/pressure.xdmf')
-
-    # Create time series
-    timeseries_u = TimeSeries('flow_results/velocity_series')
-    timeseries_p = TimeSeries('flow_results/pressure_series')
-
-    # Save mesh to file
-    File('flow_results/obstacle.xml.gz') << mesh
+    xdmffile_u = XDMFFile(f'{output_dir}/velocity.xdmf')
+    xdmffile_p = XDMFFile(f'{output_dir}/pressure.xdmf')
 
     # Create progress bar
     progress = Progress('Time-stepping')
@@ -201,13 +196,26 @@ def main(*, Lx: float=2.5, Ly: float=2.0, nres: int=32, nobst: int=100, nsteps: 
         drag = assemble(p_ * normal[0] * ds(1))
 
         print('-'*30)
-        print(f"{n} Lift: {lift:.6f} Drag: {drag:.6f} L/D: {lift/drag:.6f}")
+        print(f"{n} Lift: {lift:.6f} Drag: {drag:.6f} L/D: {lift/drag:.6f}  alpha={alpha:.3f} rad Lsin(a)-Dcos(a)={lift*np.sin(-alpha)-drag*np.cos(-alpha):.3f}")
 
 
 
     # Save solution to file (XDMF/HDF5)
     xdmffile_u.write(u_, 0)
     xdmffile_p.write(p_, 0)
+    
+    # save the parameters used in this run
+    data = {
+        'Re': [Re],
+        'alpha_rad': [alpha],
+        'lift': [lift],
+        'drag': [drag],
+        'normThickness': [normThickness],
+        'nsteps': [nsteps],
+        'nres': [nres],
+        'nobst': [nobst],
+    }
+    pd.DataFrame(data).to_csv(f'{output_dir}/results.csv')
     
 if __name__ == '__main__':
     defopt.run(main)
