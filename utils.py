@@ -64,13 +64,14 @@ def isInsideContour3(x, xc, yc, tol):
     return True
 
 
-def NACAFoilPoints(npts, m, p, t):
+def NACAFoilPoints(npts, m, p, t, beta=1.5):
     """
     Create foil contour points
     @param npts: approx number of points
     @param m: camber
-    @param p: 
+    @param p: breaking point of the foil
     @param t: thickness
+    @param beta: mesh packing exponent (> 1 to pack more points at the leading edge and tail)
     @return foil in normalized coordinates 0 <= x <= 1
     """
     assert(p > 0 and p < 1)
@@ -80,10 +81,14 @@ def NACAFoilPoints(npts, m, p, t):
     
     # first part
     x1 = np.linspace(0., p, n1)
+    # add resolution at the leading edge
+    x1 = p*(x1/p)**beta
     yc1 = m*(2*p*x1 - x1**2)/p**2
     
     # second part
-    x2 = np.linspace(p + dx, 1. - dx, n2)
+    x2 = np.linspace(p + dx, 1., n2)
+    # add resolution at the tail
+    x2 = 1. - (1 - p)*((1. - x2)/(1. - p))**beta
     yc2 = m*((1-2*p) + 2*p*x2 - x2**2)/(1 - p)**2
     
     x = np.concatenate((x1, x2))
