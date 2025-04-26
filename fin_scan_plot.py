@@ -29,11 +29,16 @@ def main(*, input_dir: str='fin_scan'):
     wstyles = [':', '-.', '-']
     widths = df['normThickness'].unique()
     widths.sort()
-    rstyles = ['k', 'b', 'c', 'm', 'r']
+    rstyles = ['b', 'c', 'm', 'r']
     rvals = df['Re'].unique()
     rvals.sort()
+    
+    # add thrust
+    df['L_over_D'] = df.lift/df.drag
+    df['thrust'] = df.lift*np.sin(-df.alpha_rad) - df.drag*np.cos(-df.alpha_rad)
 
-    for yname in 'lift', 'drag':
+    for yname in 'lift', 'drag', 'thrust', 'L_over_D':
+        plt.figure()
         legs = []
         for k in range(len(rvals)):
             for j in range(len(widths)):
@@ -44,7 +49,7 @@ def main(*, input_dir: str='fin_scan'):
                 paired_list = sorted(zip(x, y))
                 sorted_x, sorted_y = zip(*paired_list)
                 plt.plot(sorted_x, sorted_y, mk)
-                legs.append(f'Re={rvals[k]} thcknss={widths[j]}')
+                legs.append(f'Re={rvals[k]:.1e} thcknss={widths[j]:.3f}')
         plt.legend(legs)
         plt.xlabel('attack angle deg')
         plt.title(yname)
