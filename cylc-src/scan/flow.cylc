@@ -1,0 +1,38 @@
+#!jinja2
+{% set NORM_THICKNESSES = 0.1, 0.05, 0.02 %}
+{% set REYNOLDS = 100, 1000, 10000 %}
+{% set NSTEPS = 100 %}
+{% set NRES = 32 %}
+{% set NOBST = 100 %}
+{% set SRC_DIR = "/home/pletzera/flow" %}
+{% set ALPHAS = 0, 1, 2, 3 %}
+
+[scheduling]
+  [[graph]]
+    R1 = """
+       {% for k in range(REYNOLDS | length) %}
+       {% for j in range(NORM_THICKNESSES | length) %}
+       {% for i in range(ALPHAS | length) %} 
+           solve{{i}}_{{j}}_{{k}}
+       {% endfor %}
+       {% endfor %}
+       {% endfor %}
+         """
+[runtime]
+  {% for k in range(REYNOLDS | length) %}
+  {% for j in range(NORM_THICKNESSES | length) %}
+  {% for i in range(ALPHAS | length) %}
+  [[solve{{i}}_{{j}}_{{k}}]]
+      script = """
+      cd {{SRC_DIR}}
+      /usr/bin/python fin.py --Re={{REYNOLDS[k]}} \
+                                   --alpha={{ALPHAS[i]}} \
+                                   --normThickness={{NORM_THICKNESSES[j]}} \
+                                   --nsteps={{NSTEPS}} \
+                                   --nres={{NRES}} \
+                                   --nobst={{NOBST}} \
+                                   --output-dir={{SRC_DIR}}/fin_scan/res{{i}}_{{j}}_{{k}}
+      """
+  {% endfor %}
+  {% endfor %}
+  {% endfor %}
