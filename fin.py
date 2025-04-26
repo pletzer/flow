@@ -165,6 +165,8 @@ def main(*, Lx: float=2.5, Ly: float=2.0, nres: int=32, nobst: int=100, nsteps: 
 
 
     # Time-stepping
+    lifts = []
+    drags = []
     t = 0
     for n in range(nsteps):
 
@@ -194,6 +196,19 @@ def main(*, Lx: float=2.5, Ly: float=2.0, nres: int=32, nobst: int=100, nsteps: 
         # Define the lift and drag integrals
         lift = assemble(p_ * normal[1] * ds(1)) # ds(1) means over contour tagged with 1
         drag = assemble(p_ * normal[0] * ds(1))
+        
+        # exit condition
+        nlast = nsteps // 10
+        lifts.append(lift)
+        drags.append(drag)
+        std_lifts = np.std(lifts[-nlast:])
+        std_drags = np.std(drags[-nlast:])
+        avg_lifts = np.mean(lifts[-nlast:])
+        avg_drags = np.mean(drags[-nlast:])
+        if n > 2*nlast and avg_drags > 0 and avg_lifts > 0 and \
+            std_lifts / avg_lifts < 0.05 and \
+            std_drags / avg_drags < 0.05:
+            break
 
         print('-'*30)
         print(f"{n} Lift: {lift:.6f} Drag: {drag:.6f} L/D: {lift/drag:.6f}  alpha={alpha:.3f} rad Lsin(a)-Dcos(a)={lift*np.sin(-alpha)-drag*np.cos(-alpha):.3f}")
