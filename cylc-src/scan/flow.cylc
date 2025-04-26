@@ -8,6 +8,10 @@
 {% set ALPHAS = 0, 1, 2, 3 %}
 
 [scheduling]
+[[queues]]
+  # limit the entire workflow to 6 active tasks at once
+  [[[default]]]
+    limit = 6
   [[graph]]
     R1 = """
        {% for k in range(REYNOLDS | length) %}
