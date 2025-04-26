@@ -1,0 +1,30 @@
+#!jinja2
+{% set NORM_THICKNESS = 0.1 %}
+{% set REYNOLDS = 1000 %}
+{% set NSTEPS = 100 %}
+{% set NRES = 32 %}
+{% set NOBST = 100 %}
+{% set SRC_DIR = "/home/pletzera/flow" %}
+{% set ALPHAS = 0, 1, 2, 3 %}
+
+[scheduling]
+  [[graph]]
+    R1 = """
+       {% for i in range(ALPHAS | length) %} 
+           run{{i}}
+       {% endfor %}
+         """
+[runtime]
+  {% for i in range(ALPHAS | length) %}
+  [[run{{i}}]]
+      script = """
+      cd {{SRC_DIR}}
+      /usr/bin/python fin.py --Re={{REYNOLDS}} \
+                                   --alpha={{ALPHAS[i]}} \
+                                   --normThickness={{NORM_THICKNESS}} \
+                                   --nsteps={{NSTEPS}} \
+                                   --nres={{NRES}} \
+                                   --nobst={{NOBST}} \
+                                   --output-dir={{SRC_DIR}}/fin_results/res{{i}}
+      """
+  {% endfor %}
