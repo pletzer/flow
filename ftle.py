@@ -2,20 +2,24 @@ import defopt
 import numpy as np
 import vtk
 
-def main(*, velocity_xdmf: str='velocity.xdmf', time: float=1, time_step=0.1, forward=True, 
+def main(*, velocity_xdmf: str='velocity.xdmf', 
+         length: float=0.5, 
+         step: float=0.1, 
+         forward: bool=True, 
          output_filename: str='ftle.vtk'):
     """
     Compute the finite time Lyapunov exponent
     @param velocity_xdmf: file containing the velocity data
-    @param time: integration time
-    @param time_step: time step
+    @param length: integration length
+    @param step: step size
     @param forward: True or False to integrate backward
+    @param output_filename: FTLE data will be saved in this file
     """
     # read the data
-    reader = vtk.vtkXdfmfReader()
+    reader = vtk.vtkXdmfReader()
     reader.SetFileName(velocity_xdmf)
     reader.Update()
-    grid = reader.GetOuput()
+    grid = reader.GetOutput()
     points = grid.GetPoints()
     velocity = grid.GetPointData().GetArray(0)
     
@@ -28,9 +32,10 @@ def main(*, velocity_xdmf: str='velocity.xdmf', time: float=1, time_step=0.1, fo
     geometry_filter.SetInputData(grid)
     geometry_filter.Update()
     streamline.SetSourceData(geometry_filter.GetOutput())
-    streamline.SetMaximumPropagation(time)
-    streamline.SetIntegrationStepUnit(vtk.vtkStreamTracer.TIME_UNIT)
-    streamline.SetInitialIntegrationStep(time_step)
+    streamline.SetMaximumPropagation(length)
+    streamline.SetIntegrationStepUnit(vtk.vtkStreamTracer.LENGTH_UNIT) # TIME_UNIT is no longer supported
+    #streamline.SetIntegrationStepUnit(vtk.vtkStreamTracer.TIME_UNIT)
+    streamline.SetInitialIntegrationStep(step) # this should be a length step?
     streamline.SetIntegratorTypeToRungeKutta4()
     if forward:
         streamline.SetIntegrationDirectionToForward()
@@ -49,7 +54,7 @@ def main(*, velocity_xdmf: str='velocity.xdmf', time: float=1, time_step=0.1, fo
     ftle.SetNumberOfComponents(1)
     ftle.SetNumberOfTuples(cells.GetNumberOfCells())
     # loop over the cells
-    for icell in cells.GetNumberOfCells():
+    for icell in range(cells.GetNumberOfCells()):
         cells.GetCellAtId(icell, ptIds)
         # get the starting points of this cell
         x0, y0, _ = points.GetPoint(ptIds.GetId(0))
@@ -83,13 +88,13 @@ def main(*, velocity_xdmf: str='velocity.xdmf', time: float=1, time_step=0.1, fo
         # compute the eigenvalues
         eigvals, _ = np.linalg.eig(Delta)
         
-        ftle.InsertNextTuple1(np.log(np.max(eigvals)) / (2 * time))
+        ftle.InsertNextTuple1(np.log(np.max(eigvals)) / (2 * length))
             
     # add the FTLE to the grid
     grid.GetCellData().AddArray(ftle)
     
     # write the output
-    writer = vtk.vtkVTKWriter()
+    writer = vtk.vtkUnstructuredGridWriter()
     writer.SetFileName(output_filename)
     writer.SetInputData(grid)
     writer.Write()
