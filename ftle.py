@@ -8,7 +8,7 @@ def main(*, velocity_xdmf: str='velocity.xdmf',
          forward: bool=True, 
          output_filename: str='ftle.vtk'):
     """
-    Compute the finite time Lyapunov exponent
+    Compute the finite time Lyapunov exponent (reall finite length Lyapunov exponent)
     @param velocity_xdmf: file containing the velocity data
     @param length: integration length
     @param step: step size
@@ -50,9 +50,11 @@ def main(*, velocity_xdmf: str='velocity.xdmf',
     cells = grid.GetCells()
     ptIds = vtk.vtkIdList()
     ftle = vtk.vtkDoubleArray()
-    ftle.SetName("Eigenvalues")
+    ftle.SetName("FTLE")
     ftle.SetNumberOfComponents(1)
+    # this will allocate the array
     ftle.SetNumberOfTuples(cells.GetNumberOfCells())
+    print(f'number of cells = {cells.GetNumberOfCells()}')
     # loop over the cells
     for icell in range(cells.GetNumberOfCells()):
         cells.GetCellAtId(icell, ptIds)
@@ -87,10 +89,13 @@ def main(*, velocity_xdmf: str='velocity.xdmf',
         
         # compute the eigenvalues
         eigvals, _ = np.linalg.eig(Delta)
+        print(f'cell {icell}: eigenvalues = {eigvals} max eigenvelue = {np.max(eigvals)}')
         
-        ftle.InsertNextTuple1(np.log(np.max(eigvals)) / (2 * length))
+        # should normally divide by the time not the length!
+        ftle.SetTuple(icell, [np.log(np.max(eigvals)) / (2 * length),])
             
-    # add the FTLE to the grid
+    print(f'size of FTLE array: {ftle.GetNumberOfTuples()} x {ftle.GetNumberOfComponents()}')
+    # add the FTLE array to the grid
     grid.GetCellData().AddArray(ftle)
     
     # write the output
